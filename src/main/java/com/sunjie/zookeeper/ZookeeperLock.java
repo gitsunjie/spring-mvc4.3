@@ -26,27 +26,31 @@ public class ZookeeperLock{
      * @param rootPath
      */
     public ZookeeperLock(String connectString ,String rootPath){
-    	this(1000, 5, 5000, connectString,  rootPath);
+    	this(1000, 1, 5000, 5000, connectString,  rootPath);
     }
     
     /**
      * 创建zookeeper锁，利用curator实现
-     * @param baseSleepTimeMs
-     * @param maxRetries
-     * @param sessionTimeoutMs
-     * @param connectString
+     * @param baseSleepTimeMs 等待该时间后开始重试
+     * @param maxRetries 重试次数
+     * @param connectionTimeoutMs 连接超时时间
+     * @param sessionTimeoutMs session超时时间
+     * @param connectString zookeeper地址ip
      */
-    public ZookeeperLock(int baseSleepTimeMs, int maxRetries, int sessionTimeoutMs,String connectString, String rootPath){
-    	
+    public ZookeeperLock(int baseSleepTimeMs, int maxRetries, int connectionTimeoutMs, int sessionTimeoutMs,String connectString, String rootPath){
+    	// 重试策略
         RetryPolicy policy = new ExponentialBackoffRetry(baseSleepTimeMs, maxRetries);
     	// 创建zookeeper客户端连接
         client = CuratorFrameworkFactory
         		.builder()
         		.connectString(connectString)
+        		.connectionTimeoutMs(connectionTimeoutMs)
         		.sessionTimeoutMs(sessionTimeoutMs)
         		.retryPolicy(policy)
         		.build();
+        // 启动会话
         client.start();
+        // 创建可重入锁
         this.lock = new InterProcessMutex(client, rootPath);
     }
     
